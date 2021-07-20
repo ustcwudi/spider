@@ -12,13 +12,13 @@ LOG_LEVEL = "WARNING"
 
 SPIDER_MODULES = ['tsinghua.spiders']
 NEWSPIDER_MODULE = 'tsinghua.spiders'
-
+FILES_STORE='files'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'tsinghua (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 CONCURRENT_REQUESTS = 4
@@ -63,9 +63,10 @@ CONCURRENT_REQUESTS = 4
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    'tsinghua.pipelines.TsinghuaPipeline': 300,
-#}
+ITEM_PIPELINES = {
+    'tsinghua.pipelines.TsinghuaPipeline': 300,
+    'tsinghua.pipelines.DownloadFile': 1,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html

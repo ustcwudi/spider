@@ -1,5 +1,6 @@
 import scrapy
 import re
+import os
 import xlwt
 from bs4 import BeautifulSoup
 from tsinghua.items import TsinghuaItem
@@ -7,7 +8,7 @@ from tsinghua.items import TsinghuaItem
 
 class MdpiSpider(scrapy.Spider):
     name = 'mdpi'
-    allowed_domains = ['www.mdpi.com']
+    allowed_domains = ['www.mdpi.com', 'orcid.org']
     start_urls = []
 
     def closed(self, spider):
@@ -17,7 +18,7 @@ class MdpiSpider(scrapy.Spider):
     def __init__(self, p='2071-1050', v='13', n='14'):
         self.start_urls = [
             'https://www.mdpi.com/%s/%s/%s/date/default/1/1000' % (p, v, n)]
-        self.xls = '%s-%s-%s.xls' % (p, v, n)
+        self.xls = 'files/xls/%s-%s-%s.xls' % (p, v, n)
         self.index = 0
         self.url_list = ['']
         self.doi_list = ['']
@@ -34,16 +35,12 @@ class MdpiSpider(scrapy.Spider):
         self.sheet1.write(0, 8, 'abstract')
         self.sheet1.write(0, 9, 'pdf')
         self.sheet1.write(0, 10, 'author')
-        self.sheet1.write(0, 11, 'author profile')
-        self.sheet1.write(0, 12, 'author info')
-        self.sheet1.write(0, 13, 'author orcid')
-        self.sheet1.write(0, 14, 'author address')
-        self.sheet1.write(0, 15, 'keywords')
-        self.sheet1.write(0, 16, 'cite')
-        self.sheet1.write(0, 17, 'cite number')
-        self.sheet1.write(0, 18, 'cite url')
-        self.sheet1.write(0, 19, 'history')
-        self.sheet1.write(0, 20, 'review')
+        self.sheet1.write(0, 11, 'author address')
+        self.sheet1.write(0, 12, 'keywords')
+        self.sheet1.write(0, 13, 'cite')
+        self.sheet1.write(0, 14, 'cite url')
+        self.sheet1.write(0, 15, 'history')
+        self.sheet1.write(0, 16, 'review')
         print('爬虫开始')
 
     def parse(self, response):
@@ -91,33 +88,38 @@ class MdpiSpider(scrapy.Spider):
         # 作者
         author1 = ''
         author2 = ''
-        author3 = ''
-        author4 = ''
-        author5 = ''
         author_list = soup.find(
             'div', class_='art-authors hypothesis_container').find_all('div', class_="sciprofiles-link")
         for author in author_list:
-            author1 += author.get_text() + '\n'
             a = author.find('a')
             a_href = ''
             if a is not None:
                 a_href = a.get('href')
-            author2 += a_href + '\n'
-            author3 += author.parent.find('sup').get_text().strip() + '\n'
+            orc = ''
             links = author.parent.find_all('a')
             for link in links:
                 if link.get('href').startswith('https://orcid.org/'):
-                    author4 += link.get('href')
-            author4 += '\n'
+                    orc = link.get('href')[18:]
+                    item = TsinghuaItem()
+                    item['files'] = ['orc/'+orc+'.person.json', 'orc/'+orc +
+                                     '.affiliation.json', 'orc/'+orc+'.works.json']
+                    item['file_urls'] = [
+                        link.get('href')+'/person.json', link.get('href')+'/affiliationGroups.json', link.get('href')+'/worksPage.json?offset=0&sort=date&sortAsc=false&pageSize=100']
+                    yield item
+            author1 += author.get_text()+'|' + author.parent.find('sup').get_text().strip() + \
+                '|' + orc+'|' + a_href+'\n'
         self.sheet1.write(self.index, 10, author1)
-        self.sheet1.write(self.index, 11, author2)
-        self.sheet1.write(self.index, 12, author3)
-        self.sheet1.write(self.index, 13, author4)
         # 作者地址
-        author_address_list = soup.find_all('div', class_='affiliation-name')
+        author_address_list = soup.find_all('div', class_='affiliation')
         for author_address in author_address_list:
-            author5 += author_address.get_text() + '\n'
-        self.sheet1.write(self.index, 14, author5)
+            key = author_address.find('div', class_='affiliation-item')
+            if key is not None:
+                author2 += key.get_text() + ':'+author_address.find('div',
+                                                                    class_='affiliation-name').get_text() + '\n'
+            else:
+                author2 += author_address.find('div',
+                                               class_='affiliation-name').get_text() + '\n'
+        self.sheet1.write(self.index, 11, author2)
         # 关键词
         keyword_array = ''
         keywords = soup.find(
@@ -125,10 +127,10 @@ class MdpiSpider(scrapy.Spider):
         if keywords is not None:
             for keyword in keywords.find_all('a'):
                 keyword_array += keyword.get_text() + '\n'
-            self.sheet1.write(self.index, 15, keyword_array)
+            self.sheet1.write(self.index, 12, keyword_array)
         # history
         history = soup.find('div', class_='pubhistory')
-        self.sheet1.write(self.index, 19, history.get_text())
+        self.sheet1.write(self.index, 15, history.get_text())
         # add list
         self.url_list.append(response.url)
         self.doi_list.append(identifier['content'])
@@ -144,6 +146,9 @@ class MdpiSpider(scrapy.Spider):
         pass
 
     def parse_review(self, response):
+        item = TsinghuaItem()
+        file_name = []
+        file_url = []
         i = self.url_list.index(response.url[0:-14])
         print(i)
         html = response.text
@@ -160,12 +165,22 @@ class MdpiSpider(scrapy.Spider):
                     words = (words+p.get_text()+'\n')
                     attachments = p.find_all('a')
                     for attachment in attachments:
-                        words = words+attachment['href']+'\n'
+                        href = attachment['href']
+                        result = re.search(
+                            r'/([0-9]+)/(.*)\?file=(.*)&report=([0-9]+)', href, re.I)
+                        if result:
+                            name = 'response/'+result.group(
+                                1)+'.'+result.group(2)+'.'+result.group(3)+'.'+result.group(4)+os.path.splitext(attachment.get_text())[-1]
+                            file_name.append(name)
+                            file_url.append(href)
+                            words = words+name+'\n'
+                        else:
+                            print(href)
         list.append(words)
 
         index = 0
-        for item in list:
-            self.sheet1.write(i, 20+index, item)
+        for line in list:
+            self.sheet1.write(i, 16+index, line)
             index += 1
         # reviewer
         reviewer_list = soup.find_all(
@@ -173,7 +188,11 @@ class MdpiSpider(scrapy.Spider):
         reviewers = ''
         for reviewer in reviewer_list:
             reviewers += reviewer.get_text() + '\n'
-        self.sheet1.write(i, 20, reviewers)
+        self.sheet1.write(i, 16, reviewers)
+
+        item['files'] = file_name
+        item['file_urls'] = file_url
+        yield item
 
     def parse_cite(self, response):
         index = self.doi_list.index(response.url[32:].replace('%252F', '/'))
@@ -183,13 +202,10 @@ class MdpiSpider(scrapy.Spider):
         cites = soup.find_all('div', class_='relative-size-container')
         cite1 = ''
         cite2 = ''
-        cite3 = ''
         for cite in cites:
             title = cite.find('div', class_='relative-size-title')
-            cite1 += title.get_text().strip() + '\n'
             count = cite.find('a')
-            cite2 += count.get_text().strip() + '\n'
-            cite3 += count.get('href').strip() + '\n'
-        self.sheet1.write(index, 16, cite1)
-        self.sheet1.write(index, 17, cite2)
-        self.sheet1.write(index, 18, cite3)
+            cite1 += title.get_text().strip() + ':'+count.get_text().strip() + '\n'
+            cite2 += count.get('href').strip() + '\n'
+        self.sheet1.write(index, 13, cite1)
+        self.sheet1.write(index, 14, cite2)
