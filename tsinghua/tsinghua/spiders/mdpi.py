@@ -119,6 +119,10 @@ class MdpiSpider(scrapy.Spider):
                         files.append('orc/'+orc+'.works.json')
                         file_urls.append(link.get(
                             'href')+'/worksPage.json?offset=0&sort=date&sortAsc=false&pageSize=100')
+                    if not os.path.exists('files/orc/'+orc+'.review.json'):
+                        files.append('orc/'+orc+'.review.json')
+                        file_urls.append(link.get(
+                            'href')+'/peer-reviews.json?offset=&sortAsc=false')
                     item['files'] = files
                     item['file_urls'] = file_urls
                     yield item
