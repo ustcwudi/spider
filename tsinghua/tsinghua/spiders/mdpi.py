@@ -81,7 +81,10 @@ class MdpiSpider(scrapy.Spider):
         self.sheet1.write(self.index, 7, identifier['content'])
         # 摘要
         abstract = soup.find(attrs={"name": "description"})
-        self.sheet1.write(self.index, 8, abstract['content'])
+        if len(abstract['content']) > 30000:
+            self.sheet1.write(self.index, 8, abstract['content'][0:30000])
+        else:
+            self.sheet1.write(self.index, 8, abstract['content'])
         # pdf
         pdf = soup.find(attrs={"name": "fulltext_pdf"})
         self.sheet1.write(self.index, 9, pdf['content'])
@@ -101,10 +104,23 @@ class MdpiSpider(scrapy.Spider):
                 if link.get('href').startswith('https://orcid.org/'):
                     orc = link.get('href')[18:]
                     item = TsinghuaItem()
-                    item['files'] = ['orc/'+orc+'.person.json', 'orc/'+orc +
-                                     '.affiliation.json', 'orc/'+orc+'.works.json']
-                    item['file_urls'] = [
-                        link.get('href')+'/person.json', link.get('href')+'/affiliationGroups.json', link.get('href')+'/worksPage.json?offset=0&sort=date&sortAsc=false&pageSize=100']
+                    files = []
+                    file_urls = []
+                    if not os.path.exists('files/orc/'+orc+'.person.json'):
+                        files.append('orc/'+orc+'.person.json')
+                        file_urls.append(link.get('href')+'/person.json')
+                    else:
+                        print('exist ' + orc+'.person.json')
+                    if not os.path.exists('files/orc/'+orc+'.affiliation.json'):
+                        files.append('orc/'+orc+'.affiliation.json')
+                        file_urls.append(link.get('href') +
+                                         '/affiliationGroups.json')
+                    if not os.path.exists('files/orc/'+orc+'.works.json'):
+                        files.append('orc/'+orc+'.works.json')
+                        file_urls.append(link.get(
+                            'href')+'/worksPage.json?offset=0&sort=date&sortAsc=false&pageSize=100')
+                    item['files'] = files
+                    item['file_urls'] = file_urls
                     yield item
             author1 += author.get_text()+'|' + author.parent.find('sup').get_text().strip() + \
                 '|' + orc+'|' + a_href+'\n'
@@ -171,8 +187,12 @@ class MdpiSpider(scrapy.Spider):
                         if result:
                             name = 'response/'+result.group(
                                 1)+'.'+result.group(2)+'.'+result.group(3)+'.'+result.group(4)+os.path.splitext(attachment.get_text())[-1]
-                            file_name.append(name)
-                            file_url.append(href)
+                            if not os.path.exists('files/'+name):
+                                print('need ' + name)
+                                file_name.append(name)
+                                file_url.append(href)
+                            else:
+                                print('exist ' + name)
                             words = words+name+'\n'
                         else:
                             print(href)
@@ -180,7 +200,10 @@ class MdpiSpider(scrapy.Spider):
 
         index = 0
         for line in list:
-            self.sheet1.write(i, 16+index, line)
+            if len(line) > 30000:
+                self.sheet1.write(i, 16+index, line[0:30000])
+            else:
+                self.sheet1.write(i, 16+index, line)
             index += 1
         # reviewer
         reviewer_list = soup.find_all(
