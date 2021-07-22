@@ -61,12 +61,25 @@ def orc(file):
                     if not len(spans[2]) in list:
                         list.append(spans[2])
     i = 0
+    opener = urllib.request.build_opener()
+    opener.addheaders = [
+        ('User-agent', 'Opera/9.80 (Android 2.3.4; Linux; Opera Mobi/build-1107180945; U; en-GB) Presto/2.8.149 Version/11.10')]
+    urllib.request.install_opener(opener)
     for orc in list:
         print(orc)
         i += 1
         if not os.path.exists('files/orc/'+orc+".review.json"):
             urllib.request.urlretrieve('https://orcid.org/'+orc +
                                        '/peer-reviews.json?offset=&sortAsc=false', 'files/orc/'+orc+".review.json")
+        if not os.path.exists('files/orc/'+orc+".person.json"):
+            urllib.request.urlretrieve('https://orcid.org/'+orc +
+                                       '/person.json', 'files/orc/'+orc+".person.json")
+        if not os.path.exists('files/orc/'+orc+".affiliation.json"):
+            urllib.request.urlretrieve('https://orcid.org/'+orc +
+                                       '/affiliationGroups.json', 'files/orc/'+orc+".affiliation.json")
+        if not os.path.exists('files/orc/'+orc+".works.json"):
+            urllib.request.urlretrieve('https://orcid.org/'+orc +
+                                       '/worksPage.json?offset=0&sort=date&sortAsc=false&pageSize=100', 'files/orc/'+orc+".works.json")
         with open("files/orc/"+orc+".person.json", "r", encoding='utf-8') as f:
             dict = json.load(f)
             # 0 id
@@ -182,7 +195,9 @@ def orc(file):
                     if work['workExternalIdentifiers'] is not None:
                         for id in work['workExternalIdentifiers']:
                             content += null_str(id['externalIdentifierType']['value']) + \
-                                ':'+null_str(id['externalIdentifierId']['value'])+'|'
+                                ':' + \
+                                null_str(id['externalIdentifierId']
+                                         ['value'])+'|'
                     content += '\n'
             if len(content) > 30000:
                 content = content[:30000]
@@ -203,9 +218,11 @@ def orc(file):
                     content = content[:30000]
                 writesheet.write(i, 10+j, content)
                 j = j+1
+                if j > 240:
+                    break
     writebook.save(file)
 
 
-for num in range(12, 15):
+for num in range(1, 15):
     print(num)
     orc('files/xls/2071-1050-13-'+str(num)+'.xls')

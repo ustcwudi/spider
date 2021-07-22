@@ -79,6 +79,12 @@ class MdpiSpider(scrapy.Spider):
         # identifier
         identifier = soup.find(attrs={"name": "dc.identifier"})
         self.sheet1.write(self.index, 7, identifier['content'])
+        if not os.path.exists('files/stats/'+identifier.replace('/', '_')+'.json'):
+            item = TsinghuaItem()
+            item['files'] = ['files/stats/' +
+                             identifier.replace('/', '_')+'.json']
+            item['file_urls'] = [response.url + '/stats']
+            yield item
         # 摘要
         abstract = soup.find(attrs={"name": "description"})
         if len(abstract['content']) > 30000:
