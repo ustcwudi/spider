@@ -1,4 +1,5 @@
 *.log
 *.xls
+.idea
 files
 __pycache__
