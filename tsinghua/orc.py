@@ -1,6 +1,7 @@
 import xlrd
 import json
 import os
+import sys
 import urllib.request
 from xlutils.copy import copy
 
@@ -223,6 +224,8 @@ def orc(file):
     writebook.save(file)
 
 
-for num in range(1, 15):
-    print(num)
-    orc('files/xls/2071-1050-13-'+str(num)+'.xls')
+if __name__ == '__main__':
+    arg1 = sys.argv[1]
+    arg2 = sys.argv[2]
+    arg3 = sys.argv[3]
+    orc('files/xls/'+arg1+'-'+arg2+'-'+arg3+'.xls')

@@ -77,11 +77,11 @@ class MdpiSpider(scrapy.Spider):
         startingPage = soup.find(attrs={"name": "prism.startingPage"})
         self.sheet1.write(self.index, 6, startingPage['content'])
         # identifier
-        identifier = soup.find(attrs={"name": "dc.identifier"})
-        self.sheet1.write(self.index, 7, identifier['content'])
-        if not os.path.exists('files/stats/'+identifier.replace('/', '_')+'.json'):
+        identifier = soup.find(attrs={"name": "dc.identifier"})['content']
+        self.sheet1.write(self.index, 7, identifier)
+        if not os.path.exists('stats/'+identifier.replace('/', '_')+'.json'):
             item = TsinghuaItem()
-            item['files'] = ['files/stats/' +
+            item['files'] = ['stats/' +
                              identifier.replace('/', '_')+'.json']
             item['file_urls'] = [response.url + '/stats']
             yield item
@@ -159,7 +159,7 @@ class MdpiSpider(scrapy.Spider):
         self.sheet1.write(self.index, 15, history.get_text())
         # add list
         self.url_list.append(response.url)
-        self.doi_list.append(identifier['content'])
+        self.doi_list.append(identifier)
         # 引用
         match = re.search(r'\"/cite-count/(.*?)\"', html, re.I)
         if match:

@@ -1,9 +1,9 @@
 import xlrd
 import json
+import sys
 import os
 import urllib.request
 from xlutils.copy import copy
-
 
 def stat(file):
     readbook = xlrd.open_workbook(file)
@@ -49,6 +49,9 @@ def stat(file):
     writebook.save(file)
 
 
-for num in range(14, 15):
-    print(num)
-    stat('files/xls/2071-1050-13-'+str(num)+'.xls')
+if __name__ == '__main__':
+    arg1 = sys.argv[1]
+    arg2 = sys.argv[2]
+    arg3 = sys.argv[3]
+    stat('files/xls/'+arg1+'-'+arg2+'-'+arg3+'.xls')
+
