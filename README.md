@@ -1,14 +1,14 @@
 #lib
-scrapy
-bs4
-xlwt
-xlrd
-xlutils
+1. scrapy
+2. bs4
+3. xlwt
+4. xlrd
+5. xlutils
 
 #usage
-xls.py 1911-8074 14 1
-orc.py 1911-8074 14 1
-stats.py 1911-8074 14 1
+1. xls.py 1911-8074 14 1
+2. orc.py 1911-8074 14 1
+3. stats.py 1911-8074 14 1
 
 # paper
 1. url`链接`
