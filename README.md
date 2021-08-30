@@ -1,3 +1,15 @@
+#lib
+scrapy
+bs4
+xlwt
+xlrd
+xlutils
+
+#usage
+xls.py 1911-8074 14 1
+orc.py 1911-8074 14 1
+stats.py 1911-8074 14 1
+
 # paper
 1. url`链接`
 2. title`标题`
